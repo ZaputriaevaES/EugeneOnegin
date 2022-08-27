@@ -20,25 +20,16 @@ int main()
 
     for(int i = 0; i < n; i++)
     {
-
         EO[i] = (char*)calloc(m, sizeof(char));
-        char * spEO = EO[i];
 
-        for(int k = m; k-- > 0 && (ch = (char)getc(read)) != '\n'; spEO++)
-        {
-            *spEO = ch;
-        }
-
-        *spEO = '\0';
-
+        fgets(EO[i], m, read);
     }
+
 
     for (int i = 0; i < n; i++)
     {
-        printf("%s\n", EO[i]);
+        printf("%s", EO[i]);
     }
-
-
 
 
     for (int i = 0; i < n; i++)
