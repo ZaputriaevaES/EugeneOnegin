@@ -1,15 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 
 char * Bufgets(char *str, int num, char * BUF);//взятие строки из буфера
 
+void SortStrings(char ** strings, int num, int (* StrCmp)(const char *, const char *));
+
 int StrCmpFirstLetter(const char * str1, const char * str2);//сравнение двух строк
-void SortStringsByFirstLetter(char ** strigs, int num); //сортировка по первой букве
+//void SortStringsByFirstLetter(char ** strigs, int num); //сортировка по первой букве
 
 int StrCmpLastLetter(const char * str1, const char * str2);//сравнение двух строк
-void SortStringsByLastLetter(char ** strigs, int num); //сортировка по оследней букве
+//void SortStringsByLastLetter(char ** strigs, int num); //сортировка по оследней букве
+
+//int cmp(const void *ptr1, const void *ptr2);
 
 
 int main()
@@ -17,15 +22,26 @@ int main()
 
 //--------------------------------Открытие файлов----------------------------------------------------
 
-    FILE * read = fopen("EugeneOnegin.txt", "r");
+    const char * readFile = "EugeneOnegin.txt";
+
+    FILE * read = fopen(readFile, "r");
+
+    assert(read != NULL && "\nunable to open file EugeneOnegin.txt\n");
+
     FILE * write = fopen("write.txt", "w+");
+
+    //assert(wite != NULL && "\nunable to open file write.txt\n")
 
 //--------------------------------Определение размера файла------------------------------------------
 
 
-    fseek(read, 0, SEEK_END); //перемещает указатель на конец файла
+    assert(fseek(read, 0, SEEK_END) == 0 &&
+           "\nunable to move pointer to end of file\n"); //перемещает указатель на конец файла
+
     long int FileSize = ftell(read);
-    fseek(read, 0, SEEK_SET); //перемещает указатель нв начало файла
+
+    assert(fseek(read, 0, SEEK_SET) == 0 &&
+           "\nunable to move pointer to beginning of file\n"); //перемещает указатель нв начало файла
 
     size_t Elements = FileSize / sizeof(char);
 
@@ -34,14 +50,17 @@ int main()
     //printf("%ld %d %d\n", FileSize, sizeof(char), Elements);
     char * BUF = (char *)calloc(Elements, sizeof(char)); //указатель на массив элементов типа char
 
-    if(BUF == NULL)
-        printf("\nERROR1\n");
+    assert(BUF != NULL && "\nfailed to allocate buffer memory\n");
 
     if(fread(BUF, sizeof(char), Elements, read) < Elements) //извлечение из файла read.txt
-        printf("\nERROR2\n");
+        fprintf(stderr, "\nnot all elements were read from the file to the buffer\n");
 
-    //if(fwrite(BUF, sizeof(char), Elements, write) < Elements) //запись в файл write.txt
-        //printf("\nERROR3\n");
+    //assert(fread(BUF, sizeof(char), Elements, read) < Elements &&
+    //       "\nnot all elements were read from the file to the buffer\n")
+
+    //assert(fwrite(BUF, sizeof(char), Elements, write) < Elements &&
+    //       "\nnot all elements from the buffer were written to the file\n")
+    //запись в файл write.txt
 
     fclose(read);
 
@@ -60,8 +79,8 @@ int main()
     const int StrLen = 60; //максимальная длина строки
 
     char * pBUF = BUF;
-    char ** EO = (char **)calloc(StrNum, sizeof(char *));
-    char ** pEO = (char **)calloc(StrNum, sizeof(char *));
+    char ** EO = (char **)calloc(StrNum, sizeof(char *)); //основной массив указателей
+    char ** pEO = (char **)calloc(StrNum, sizeof(char *)); //запасной массив указателей
 
     for(int i = 0; i < StrNum; i++)
     {
@@ -72,7 +91,8 @@ int main()
 
 //--------------------------------Сортировка строк по первой букве-----------------------------------
 
-    SortStringsByFirstLetter(EO, StrNum);
+    //SortStringsByFirstLetter(EO, StrNum);
+    SortStrings(EO, StrNum, StrCmpFirstLetter);
 
 //--------------------------------Вывод массива строк------------------------------------------------
 
@@ -81,6 +101,7 @@ int main()
         printf("%s\n", EO[i]);
         fprintf(write, "%s\n", EO[i]);
     }
+
     printf("\n----------------------------------------------\n");
     fprintf(write, "\n----------------------------------------------\n");
 
@@ -91,12 +112,14 @@ int main()
         printf("%s\n", pEO[i]);
         fprintf(write, "%s\n", pEO[i]);
     }
+
     printf("\n----------------------------------------------\n");
     fprintf(write, "\n----------------------------------------------\n");
 
 //--------------------------------Сортировка строк по последней букве-----------------------------------
 
-    SortStringsByLastLetter(EO, StrNum);
+    //SortStringsByLastLetter(EO, StrNum);
+    SortStrings(EO, StrNum, StrCmpLastLetter);
 
 //--------------------------------Вывод массива строк------------------------------------------------
 
@@ -111,11 +134,34 @@ int main()
     fclose(write);
 
     for (unsigned int i = 0; i < n; i++)
-    free(EO[i]);
+        free(EO[i]);
 
     free(EO);
 
     return 0;
+/*
+//--------------------------------Сортировка строк по первой букве-----------------------------------
+
+    SortStringsByFirstLetter(EO, n);
+    qsort(EO, 96, sizeof(char*), cmp);
+
+
+int cmp(const void *ptr1, const void *ptr2)
+{
+    const char * str1 = (char *) ptr1;
+    const char * str2 = (char *) ptr2;
+
+    int dif = 0; // difference of ANSI codes
+
+    while((dif = (*str1 - *str2)) == 0 && *str1 != '\0' && *str2 != '\0')
+    {
+        str1++;
+        str2++;
+    }
+
+    return dif;
+}
+*/
 }
 
 char * Bufgets(char *str, int num, char * pBUF)
@@ -133,6 +179,26 @@ char * Bufgets(char *str, int num, char * pBUF)
     return pBUF;
 }
 
+void SortStrings(char ** strings, int num, int (* StrCmp)(const char *, const char *)) // массив указателей на строки и их количество
+{
+    char * temp = NULL;
+    int n = 0, i = 0;
+
+    for(n = num - 1; n >= 1; n--)
+    {
+        for(i = 0; i < n; i++)
+        {
+            if (StrCmp(strings[i], strings[i + 1]) > 0)
+            {
+                temp = strings[i];
+                strings[i] = strings[i + 1] ;
+                strings[i + 1] = temp;
+            }
+        }
+    }
+}
+
+/*
 void SortStringsByFirstLetter(char ** strings, int num) // массив указателей на строки и их количество
 {
     char * temp = NULL;
@@ -151,7 +217,7 @@ void SortStringsByFirstLetter(char ** strings, int num) // массив указ
         }
     }
 }
-
+*/
 int StrCmpFirstLetter(const char * str1, const char * str2)
 {
     int dif = 0; // difference of ANSI codes
@@ -179,7 +245,7 @@ int StrCmpFirstLetter(const char * str1, const char * str2)
 
     return dif;
 }
-
+/*
 void SortStringsByLastLetter(char ** strings, int num) // массив указателей на строки и их количество
 {
     char * temp = NULL;
@@ -198,7 +264,7 @@ void SortStringsByLastLetter(char ** strings, int num) // массив указ�
         }
     }
 }
-
+*/
 int StrCmpLastLetter(const char * str1, const char * str2)
 {
     int dif = 0; // difference of ANSI codes
@@ -239,4 +305,3 @@ int StrCmpLastLetter(const char * str1, const char * str2)
 
     return dif;
 }
-
