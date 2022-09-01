@@ -3,16 +3,18 @@
 #include <string.h>
 #include <assert.h>
 
+struct Line{
+    char * strPtr;
+    int strLen;
+    };
 
-char * Bufgets(char *str, int num, char * BUF);//взятие строки из буфера
+void openFiles(char * read);
+char * pBufgets(struct Line * string, char * pBUF);
 
-void SortStrings(char ** strings, int num, int (* StrCmp)(const char *, const char *));
+void SortStrings(struct Line * strings, int num, int (* StrCmp)(struct Line *, struct Line *));
+int StrCmpFirstLetter(struct Line * string1, struct Line * string2);//сравнение двух строк
+int StrCmpLastLetter(struct Line * string1, struct Line * string2);//сравнение двух строк
 
-int StrCmpFirstLetter(const char * str1, const char * str2);//сравнение двух строк
-//void SortStringsByFirstLetter(char ** strigs, int num); //сортировка по первой букве
-
-int StrCmpLastLetter(const char * str1, const char * str2);//сравнение двух строк
-//void SortStringsByLastLetter(char ** strigs, int num); //сортировка по оследней букве
 
 //int cmp(const void *ptr1, const void *ptr2);
 
@@ -70,36 +72,38 @@ int main()
     for (unsigned int i = 0; i < Elements; i++)
     {
         if (BUF[i] == '\n')
+        {
+            BUF[i] = '\0';
             n++;
+        }
     }
 
 //--------------------------------Создание массива строк---------------------------------------------
 
     const int StrNum = n + 1; //количество строк
-    const int StrLen = 60; //максимальная длина строки
 
     char * pBUF = BUF;
-    char ** EO = (char **)calloc(StrNum, sizeof(char *)); //основной массив указателей
-    char ** pEO = (char **)calloc(StrNum, sizeof(char *)); //запасной массив указателей
+    struct Line * EO = (struct Line *)calloc(StrNum, sizeof(Line)); //основной массив указателей
+    struct Line * pEO = (struct Line *)calloc(StrNum, sizeof(Line)); //запасной массив указателей
 
     for(int i = 0; i < StrNum; i++)
     {
-        EO[i] = (char*)calloc(StrLen, sizeof(char));
-        pBUF = Bufgets(EO[i], StrLen, pBUF);
+
+        pBUF = pBufgets(&EO[i], pBUF);
         pEO[i] = EO[i];
+
     }
 
 //--------------------------------Сортировка строк по первой букве-----------------------------------
 
-    //SortStringsByFirstLetter(EO, StrNum);
     SortStrings(EO, StrNum, StrCmpFirstLetter);
 
 //--------------------------------Вывод массива строк------------------------------------------------
 
     for (int i = 0; i < StrNum; i++)
     {
-        printf("%s\n", EO[i]);
-        fprintf(write, "%s\n", EO[i]);
+        printf("%s\n", (&EO[i])->strPtr);
+        fprintf(write, "%s\n", (&EO[i])->strPtr);
     }
 
     printf("\n----------------------------------------------\n");
@@ -109,8 +113,8 @@ int main()
 
     for (int i = 0; i < StrNum; i++)
     {
-        printf("%s\n", pEO[i]);
-        fprintf(write, "%s\n", pEO[i]);
+        printf("%s\n", (&pEO[i])->strPtr);
+        fprintf(write, "%s\n", (&pEO[i])->strPtr);
     }
 
     printf("\n----------------------------------------------\n");
@@ -118,23 +122,19 @@ int main()
 
 //--------------------------------Сортировка строк по последней букве-----------------------------------
 
-    //SortStringsByLastLetter(EO, StrNum);
     SortStrings(EO, StrNum, StrCmpLastLetter);
 
 //--------------------------------Вывод массива строк------------------------------------------------
 
     for (int i = 0; i < StrNum; i++)
     {
-        printf("%s\n", EO[i]);
-        fprintf(write, "%s\n", EO[i]);
+        printf("%s\n", (&EO[i])->strPtr);
+        fprintf(write, "%s\n", (&EO[i])->strPtr);
     }
 
 //--------------------------------Очистка памяти-----------------------------------------------------
 
     fclose(write);
-
-    for (unsigned int i = 0; i < n; i++)
-        free(EO[i]);
 
     free(EO);
 
@@ -142,7 +142,6 @@ int main()
 /*
 //--------------------------------Сортировка строк по первой букве-----------------------------------
 
-    SortStringsByFirstLetter(EO, n);
     qsort(EO, 96, sizeof(char*), cmp);
 
 
@@ -163,75 +162,72 @@ int cmp(const void *ptr1, const void *ptr2)
 }
 */
 }
-
-char * Bufgets(char *str, int num, char * pBUF)
+void openFiles(char * read)
 {
-    char * pstr = str;
 
-    while(num-- > 0 && *pBUF != '\n')
+}
+
+char * pBufgets(struct Line * string, char * pBUF)
+{
+    string->strPtr = pBUF;
+
+    int num = 0;
+
+    while(*pBUF != '\0')
     {
-        *(pstr++) = *(pBUF++);
+        pBUF++;
+        num++;
     }
 
-    *pstr = '\0';
+    //*pBUF = '\0';
     pBUF++;
+
+    string->strLen = num;
+    //printf("%d\n",string->strLen);
 
     return pBUF;
 }
 
-void SortStrings(char ** strings, int num, int (* StrCmp)(const char *, const char *)) // массив указателей на строки и их количество
+void SortStrings(struct Line * strings, int num, int (* StrCmp)(struct Line *, struct Line *)) // массив указателей на строки и их количество
 {
-    char * temp = NULL;
+    struct Line temp;
     int n = 0, i = 0;
 
     for(n = num - 1; n >= 1; n--)
     {
         for(i = 0; i < n; i++)
         {
-            if (StrCmp(strings[i], strings[i + 1]) > 0)
+            if (StrCmp(&strings[i], &strings[i+1]) > 0)
             {
+                //temp = (&strings[i])->strPtr;
+                //(&strings[i])->strPtr = (&strings[i+1])->strPtr;
+                //(&strings[i+1])->strPtr = temp;
+
                 temp = strings[i];
-                strings[i] = strings[i + 1] ;
+                strings[i] = strings[i + 1];
                 strings[i + 1] = temp;
             }
         }
     }
 }
 
-/*
-void SortStringsByFirstLetter(char ** strings, int num) // массив указателей на строки и их количество
+int StrCmpFirstLetter(struct Line * string1, struct Line * string2)
 {
-    char * temp = NULL;
-    int n = 0, i = 0;
+    char * str1 = string1->strPtr;
+    char * str2 = string2->strPtr;
 
-    for(n = num - 1; n >= 1; n--)
-    {
-        for(i = 0; i < n; i++)
-        {
-            if (StrCmpFirstLetter(strings[i], strings[i + 1]) > 0)
-            {
-                temp = strings[i];
-                strings[i] = strings[i + 1] ;
-                strings[i + 1] = temp;
-            }
-        }
-    }
-}
-*/
-int StrCmpFirstLetter(const char * str1, const char * str2)
-{
     int dif = 0; // difference of ANSI codes
 
     while(dif == 0)
     {
         while ((*str1 >= 1   && *str1 <= 64)||
                (*str1 >= 91  && *str1 <= 96)||
-               (*str1 >= 123 && *str1 <= 127))   //*str1 == ' '
+               (*str1 >= 123 && *str1 <= 127))
             str1++;
 
         while ((*str2 >= 1   && *str2 <= 64)||
                (*str2 >= 91  && *str2 <= 96)||
-               (*str2 >= 123 && *str2 <= 127))   //*str2 == ' '
+               (*str2 >= 123 && *str2 <= 127))
             str2++;
 
         dif = (*str1 - *str2);
@@ -245,48 +241,30 @@ int StrCmpFirstLetter(const char * str1, const char * str2)
 
     return dif;
 }
-/*
-void SortStringsByLastLetter(char ** strings, int num) // массив указателей на строки и их количество
-{
-    char * temp = NULL;
-    int n = 0, i = 0;
 
-    for(n = num - 1; n >= 1; n--)
-    {
-        for(i = 0; i < n; i++)
-        {
-            if (StrCmpLastLetter(strings[i], strings[i + 1]) > 0)
-            {
-                temp = strings[i];
-                strings[i] = strings[i + 1] ;
-                strings[i + 1] = temp;
-            }
-        }
-    }
-}
-*/
-int StrCmpLastLetter(const char * str1, const char * str2)
+int StrCmpLastLetter(struct Line * string1, struct Line * string2)
 {
+    char * str1 = string1->strPtr;
+    char * str2 = string2->strPtr;
+
+    int len1 = string1->strLen;
+    int len2 = string2->strLen;
+
+    str1 += len1 - 1;
+    str2 += len2 - 1;
+
     int dif = 0; // difference of ANSI codes
-
-    int StrLen = 60;
-
-    str1 += StrLen - 1;
-    str2 += StrLen - 1;
-
-    int len1 = StrLen;
-    int len2 = StrLen;
 
     while(dif == 0)
     {
-        while ((*str1 >= 0   && *str1 <= 64)||
+        while ((*str1 >= 1   && *str1 <= 64)||
                (*str1 >= 91  && *str1 <= 96)||
                (*str1 >= 123 && *str1 <= 127))
         {
             str1--;
             len1--;
         }
-        while ((*str2 >= 0   && *str2 <= 64)||
+        while ((*str2 >= 1   && *str2 <= 64)||
                (*str2 >= 91  && *str2 <= 96)||
                (*str2 >= 123 && *str2 <= 127))
         {
@@ -305,3 +283,4 @@ int StrCmpLastLetter(const char * str1, const char * str2)
 
     return dif;
 }
+
