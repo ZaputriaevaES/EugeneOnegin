@@ -8,13 +8,19 @@ struct Line{
     int strLen;
     };
 
-void openFiles(char * read);
-char * pBufgets(struct Line * string, char * pBUF);
+size_t fileSizeDetection        (FILE * read);
+char * pBufgets                 (struct Line * string, char * pBUF);
+size_t countingTheNumberOfRows  (char * BUF, size_t elements);
 
-void SortStrings(struct Line * strings, int num, int (* StrCmp)(struct Line *, struct Line *));
-int StrCmpFirstLetter(struct Line * string1, struct Line * string2);//сравнение двух строк
-int StrCmpLastLetter(struct Line * string1, struct Line * string2);//сравнение двух строк
+void   creatingAnArrayOfStrings (const size_t StrNum, char * pBUF,
+                                struct Line * EO, struct Line * pEO);
 
+void   stringArrayOutput        (const size_t strNum, struct Line * EO, FILE * write);
+
+void   sortStrings              (struct Line * strings, size_t num,
+                                int (* strCmp)(struct Line *, struct Line *));
+int    strCmpFirstLetter        (struct Line * string1, struct Line * string2);//сравнение двух строк
+int    strCmpLastLetter         (struct Line * string1, struct Line * string2);//сравнение двух строк
 
 //int cmp(const void *ptr1, const void *ptr2);
 
@@ -24,115 +30,45 @@ int main()
 
 //--------------------------------Открытие файлов----------------------------------------------------
 
-    const char * readFile = "EugeneOnegin.txt";
+    const char * readFile  = "EugeneOnegin.txt";
+    const char * writeFile = "write.txt";
 
-    FILE * read = fopen(readFile, "r");
+    FILE * read  = fopen(readFile,  "r" );
+    FILE * write = fopen(writeFile, "w+");
 
     assert(read != NULL && "\nunable to open file EugeneOnegin.txt\n");
-
-    FILE * write = fopen("write.txt", "w+");
-
     //assert(wite != NULL && "\nunable to open file write.txt\n")
 
-//--------------------------------Определение размера файла------------------------------------------
+    size_t elements = fileSizeDetection(read);
 
-
-    assert(fseek(read, 0, SEEK_END) == 0 &&
-           "\nunable to move pointer to end of file\n"); //перемещает указатель на конец файла
-
-    long int FileSize = ftell(read);
-
-    assert(fseek(read, 0, SEEK_SET) == 0 &&
-           "\nunable to move pointer to beginning of file\n"); //перемещает указатель нв начало файла
-
-    size_t Elements = FileSize / sizeof(char);
-
-//--------------------------------Запись из файла в буфер--------------------------------------------
-
-    //printf("%ld %d %d\n", FileSize, sizeof(char), Elements);
-    char * BUF = (char *)calloc(Elements, sizeof(char)); //указатель на массив элементов типа char
+    char * BUF = (char *)calloc(elements, sizeof(char)); //указатель на массив элементов типа char
+    char * pBUF = BUF;
 
     assert(BUF != NULL && "\nfailed to allocate buffer memory\n");
 
-    if(fread(BUF, sizeof(char), Elements, read) < Elements) //извлечение из файла read.txt
+    if(fread(BUF, sizeof(char), elements, read) < elements) //извлечение из файла read.txt
         fprintf(stderr, "\nnot all elements were read from the file to the buffer\n");
 
     //assert(fread(BUF, sizeof(char), Elements, read) < Elements &&
     //       "\nnot all elements were read from the file to the buffer\n")
 
-    //assert(fwrite(BUF, sizeof(char), Elements, write) < Elements &&
-    //       "\nnot all elements from the buffer were written to the file\n")
-    //запись в файл write.txt
-
     fclose(read);
 
-//--------------------------------Подсчет количество строк-------------------------------------------
+    const size_t strNum = countingTheNumberOfRows(BUF, elements) + 1; //количество строк
 
-    unsigned int n = 0; //количество символов новой строки
-    for (unsigned int i = 0; i < Elements; i++)
-    {
-        if (BUF[i] == '\n')
-        {
-            BUF[i] = '\0';
-            n++;
-        }
-    }
+    struct Line * EO   = (struct Line *)calloc(strNum, sizeof(Line)); //основной массив указателей
+    struct Line * pEO  = (struct Line *)calloc(strNum, sizeof(Line)); //запасной массив указателей
 
-//--------------------------------Создание массива строк---------------------------------------------
+    creatingAnArrayOfStrings (strNum, pBUF, EO, pEO);
 
-    const int StrNum = n + 1; //количество строк
+    sortStrings              (EO, strNum, strCmpFirstLetter);
+    stringArrayOutput        (strNum, EO, write);
 
-    char * pBUF = BUF;
-    struct Line * EO = (struct Line *)calloc(StrNum, sizeof(Line)); //основной массив указателей
-    struct Line * pEO = (struct Line *)calloc(StrNum, sizeof(Line)); //запасной массив указателей
+    stringArrayOutput        (strNum, pEO, write);
 
-    for(int i = 0; i < StrNum; i++)
-    {
+    sortStrings              (EO, strNum, strCmpLastLetter);
+    stringArrayOutput        (strNum, EO, write);
 
-        pBUF = pBufgets(&EO[i], pBUF);
-        pEO[i] = EO[i];
-
-    }
-
-//--------------------------------Сортировка строк по первой букве-----------------------------------
-
-    SortStrings(EO, StrNum, StrCmpFirstLetter);
-
-//--------------------------------Вывод массива строк------------------------------------------------
-
-    for (int i = 0; i < StrNum; i++)
-    {
-        printf("%s\n", (&EO[i])->strPtr);
-        fprintf(write, "%s\n", (&EO[i])->strPtr);
-    }
-
-    printf("\n----------------------------------------------\n");
-    fprintf(write, "\n----------------------------------------------\n");
-
-//--------------------------------Вывод массива строк------------------------------------------------
-
-    for (int i = 0; i < StrNum; i++)
-    {
-        printf("%s\n", (&pEO[i])->strPtr);
-        fprintf(write, "%s\n", (&pEO[i])->strPtr);
-    }
-
-    printf("\n----------------------------------------------\n");
-    fprintf(write, "\n----------------------------------------------\n");
-
-//--------------------------------Сортировка строк по последней букве-----------------------------------
-
-    SortStrings(EO, StrNum, StrCmpLastLetter);
-
-//--------------------------------Вывод массива строк------------------------------------------------
-
-    for (int i = 0; i < StrNum; i++)
-    {
-        printf("%s\n", (&EO[i])->strPtr);
-        fprintf(write, "%s\n", (&EO[i])->strPtr);
-    }
-
-//--------------------------------Очистка памяти-----------------------------------------------------
 
     fclose(write);
 
@@ -141,34 +77,43 @@ int main()
     return 0;
 /*
 //--------------------------------Сортировка строк по первой букве-----------------------------------
-
     qsort(EO, 96, sizeof(char*), cmp);
-
-
 int cmp(const void *ptr1, const void *ptr2)
 {
     const char * str1 = (char *) ptr1;
     const char * str2 = (char *) ptr2;
-
     int dif = 0; // difference of ANSI codes
-
     while((dif = (*str1 - *str2)) == 0 && *str1 != '\0' && *str2 != '\0')
     {
         str1++;
         str2++;
     }
-
     return dif;
 }
 */
 }
-void openFiles(char * read)
-{
 
+
+size_t fileSizeDetection(FILE * read)
+{
+    assert(read != NULL);
+
+    assert(fseek(read, 0, SEEK_END) == 0 &&
+           "\nunable to move pointer to end of file\n"); //перемещает указатель на конец файла
+
+    long int fileSize = ftell(read);
+
+    assert(fseek(read, 0, SEEK_SET) == 0 &&
+           "\nunable to move pointer to beginning of file\n"); //перемещает указатель нв начало файла
+
+    return fileSize / sizeof(char);
 }
 
 char * pBufgets(struct Line * string, char * pBUF)
 {
+    assert(string != NULL);
+    assert(pBUF   != NULL);
+
     string->strPtr = pBUF;
 
     int num = 0;
@@ -183,13 +128,58 @@ char * pBufgets(struct Line * string, char * pBUF)
     pBUF++;
 
     string->strLen = num;
-    //printf("%d\n",string->strLen);
 
     return pBUF;
 }
 
-void SortStrings(struct Line * strings, int num, int (* StrCmp)(struct Line *, struct Line *)) // массив указателей на строки и их количество
+size_t countingTheNumberOfRows(char * BUF, size_t elements)
 {
+    assert(BUF != NULL);
+
+    size_t n = 0; //количество символов новой строки
+    for (size_t i = 0; i < elements; i++)
+    {
+        if (BUF[i] == '\n')
+        {
+            BUF[i] = '\0';
+            n++;
+        }
+    }
+
+    return n;
+}
+
+void creatingAnArrayOfStrings(const size_t strNum, char * pBUF, struct Line * EO, struct Line * pEO)
+{
+    for(size_t i = 0; i < strNum; i++)
+    {
+
+        pBUF   = pBufgets(&EO[i], pBUF);
+        pEO[i] = EO[i];
+
+    }
+}
+
+void stringArrayOutput(size_t strNum, struct Line * EO, FILE * write)
+{
+    assert(EO    != NULL);
+    assert(write != NULL);
+
+    for (size_t i = 0; i < strNum; i++)
+    {
+        printf(        "%s\n", (&EO[i])->strPtr);
+        fprintf(write, "%s\n", (&EO[i])->strPtr);
+    }
+
+    printf(        "\n----------------------------------------------\n");
+    fprintf(write, "\n----------------------------------------------\n");
+}
+
+void sortStrings(struct Line * strings, size_t num, int (* strCmp)(struct Line *, struct Line *)) // массив указателей на строки и их количество
+{
+    assert(strings != NULL);
+    assert(strCmp  != NULL);
+
     struct Line temp;
     int n = 0, i = 0;
 
@@ -197,22 +187,21 @@ void SortStrings(struct Line * strings, int num, int (* StrCmp)(struct Line *, s
     {
         for(i = 0; i < n; i++)
         {
-            if (StrCmp(&strings[i], &strings[i+1]) > 0)
+            if (strCmp(&strings[i], &strings[i+1]) > 0)
             {
-                //temp = (&strings[i])->strPtr;
-                //(&strings[i])->strPtr = (&strings[i+1])->strPtr;
-                //(&strings[i+1])->strPtr = temp;
-
-                temp = strings[i];
-                strings[i] = strings[i + 1];
-                strings[i + 1] = temp;
+                temp         = strings[i];
+                strings[i]   = strings[i+1];
+                strings[i+1] = temp;
             }
         }
     }
 }
 
-int StrCmpFirstLetter(struct Line * string1, struct Line * string2)
+int strCmpFirstLetter(struct Line * string1, struct Line * string2)
 {
+    assert(string1 != NULL);
+    assert(string2 != NULL);
+
     char * str1 = string1->strPtr;
     char * str2 = string2->strPtr;
 
@@ -242,8 +231,11 @@ int StrCmpFirstLetter(struct Line * string1, struct Line * string2)
     return dif;
 }
 
-int StrCmpLastLetter(struct Line * string1, struct Line * string2)
+int strCmpLastLetter(struct Line * string1, struct Line * string2)
 {
+    assert(string1 != NULL);
+    assert(string2 != NULL);
+
     char * str1 = string1->strPtr;
     char * str2 = string2->strPtr;
 
@@ -283,4 +275,3 @@ int StrCmpLastLetter(struct Line * string1, struct Line * string2)
 
     return dif;
 }
-
