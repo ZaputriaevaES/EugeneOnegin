@@ -16,7 +16,6 @@ size_t countNumberOfRows    (char * BUF, size_t elements);
 
 void   createArrayOfStrings (const size_t StrNum, char * pBUF,
                             struct Line * EO, struct Line * pEO);
-
 void   stringArrayOutput    (const size_t strNum, struct Line * EO, FILE * write);
 
 void   sortStrings          (struct Line * strings, size_t num,
@@ -24,6 +23,9 @@ void   sortStrings          (struct Line * strings, size_t num,
 
 int    strCmpFirstLetter    (struct Line * string1, struct Line * string2);//сравнение двух строк
 int    strCmpLastLetter     (struct Line * string1, struct Line * string2);//сравнение двух строк
+
+int    quickSortFromStart   (const void *ptr1, const void *ptr2);
+int    quickSortFromTheEnd  (const void *ptr1, const void *ptr2);
 
 //int cmp(const void *ptr1, const void *ptr2);
 
@@ -81,6 +83,12 @@ int main(int argc, char * argv[])
 
     sortStrings              (EO, strNum, strCmpLastLetter);
     stringArrayOutput        (strNum, EO, write);
+
+    //qsort                    (EO, strNum, sizeof(Line), quickSortFromStart);
+    //stringArrayOutput        (strNum, EO, write);
+
+    //qsort                    (EO, strNum, sizeof(Line), quickSortFromTheEnd);
+    //stringArrayOutput        (strNum, EO, write);
 
 
     fclose(write);
@@ -287,4 +295,90 @@ int strCmpLastLetter(struct Line * string1, struct Line * string2)
     }
 
     return dif;
+}
+
+int quickSortFromStart(const void *ptr1, const void *ptr2)
+{
+    assert(ptr1 != NULL);
+    assert(ptr2 != NULL);
+
+    const struct Line * string1 = (struct Line *) ptr1;
+    const struct Line * string2 = (struct Line *) ptr2;
+
+    char * str1 = string1->strPtr;
+    char * str2 = string2->strPtr;
+
+    int dif = 0; // difference of ANSI codes
+
+    while(dif == 0)
+    {
+        while ((*str1 >= 1   && *str1 <= 64)||
+               (*str1 >= 91  && *str1 <= 96)||
+               (*str1 >= 123 && *str1 <= 127))
+            str1++;
+
+        while ((*str2 >= 1   && *str2 <= 64)||
+               (*str2 >= 91  && *str2 <= 96)||
+               (*str2 >= 123 && *str2 <= 127))
+            str2++;
+
+        dif = (*str1 - *str2);
+
+        if (dif != 0 || *str1 == '\0' || *str2 == '\0')
+            return dif;
+
+        str1++;
+        str2++;
+    }
+
+    return dif;
+}
+
+int quickSortFromTheEnd(const void *ptr1, const void *ptr2)
+{
+    assert(ptr1 != NULL);
+    assert(ptr2 != NULL);
+
+    const struct Line * string1 = (struct Line *) ptr1;
+    const struct Line * string2 = (struct Line *) ptr2;
+
+    char * str1 = string1->strPtr;
+    char * str2 = string2->strPtr;
+
+    int len1 = string1->strLen;
+    int len2 = string2->strLen;
+
+    str1 += len1 - 1;
+    str2 += len2 - 1;
+
+    int dif = 0; // difference of ANSI codes
+
+    while(dif == 0)
+    {
+        while ((*str1 >= 1   && *str1 <= 64)||
+               (*str1 >= 91  && *str1 <= 96)||
+               (*str1 >= 123 && *str1 <= 127))
+        {
+            str1--;
+            len1--;
+        }
+        while ((*str2 >= 1   && *str2 <= 64)||
+               (*str2 >= 91  && *str2 <= 96)||
+               (*str2 >= 123 && *str2 <= 127))
+        {
+            str2--;
+            len2--;
+        }
+
+        dif = (*str1 - *str2);
+
+        if (dif != 0 || len1 <= 0 || len2 <= 0)
+            return dif;
+
+        str1--;
+        str2--;
+    }
+
+    return dif;
+
 }
