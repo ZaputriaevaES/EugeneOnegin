@@ -8,35 +8,48 @@ struct Line{
     int strLen;
     };
 
-size_t fileSizeDetection        (FILE * read);
-char * pBufgets                 (struct Line * string, char * pBUF);
-size_t countingTheNumberOfRows  (char * BUF, size_t elements);
+size_t fileSizeDetection    (FILE * read);
 
-void   creatingAnArrayOfStrings (const size_t StrNum, char * pBUF,
-                                struct Line * EO, struct Line * pEO);
+char * takeLineFromBuffer   (struct Line * string, char * pBUF);
 
-void   stringArrayOutput        (const size_t strNum, struct Line * EO, FILE * write);
+size_t countNumberOfRows    (char * BUF, size_t elements);
 
-void   sortStrings              (struct Line * strings, size_t num,
-                                int (* strCmp)(struct Line *, struct Line *));
-int    strCmpFirstLetter        (struct Line * string1, struct Line * string2);//сравнение двух строк
-int    strCmpLastLetter         (struct Line * string1, struct Line * string2);//сравнение двух строк
+void   createArrayOfStrings (const size_t StrNum, char * pBUF,
+                            struct Line * EO, struct Line * pEO);
+
+void   stringArrayOutput    (const size_t strNum, struct Line * EO, FILE * write);
+
+void   sortStrings          (struct Line * strings, size_t num,
+                            int (* strCmp)(struct Line *, struct Line *));
+
+int    strCmpFirstLetter    (struct Line * string1, struct Line * string2);//сравнение двух строк
+int    strCmpLastLetter     (struct Line * string1, struct Line * string2);//сравнение двух строк
 
 //int cmp(const void *ptr1, const void *ptr2);
 
 
-int main()
+int main(int argc, char * argv[])
 {
 
 //--------------------------------Открытие файлов----------------------------------------------------
 
-    const char * readFile  = "EugeneOnegin.txt";
+    FILE * read = NULL;
+
+    for(int i = 1; i < argc; i++)
+    {
+        if((read  = fopen(argv[i],  "r" )) != NULL)
+        {
+            break;
+        }
+    }
+
+    //const char * readFile  = "EugeneOnegin.txt";
     const char * writeFile = "write.txt";
 
-    FILE * read  = fopen(readFile,  "r" );
+    //FILE * read  = fopen(readFile,  "r" );
     FILE * write = fopen(writeFile, "w+");
 
-    assert(read != NULL && "\nunable to open file EugeneOnegin.txt\n");
+    //assert(read != NULL && "\nunable to open file EugeneOnegin.txt\n");
     //assert(wite != NULL && "\nunable to open file write.txt\n")
 
     size_t elements = fileSizeDetection(read);
@@ -54,12 +67,12 @@ int main()
 
     fclose(read);
 
-    const size_t strNum = countingTheNumberOfRows(BUF, elements) + 1; //количество строк
+    const size_t strNum = countNumberOfRows(BUF, elements) + 1; //количество строк
 
     struct Line * EO   = (struct Line *)calloc(strNum, sizeof(Line)); //основной массив указателей
     struct Line * pEO  = (struct Line *)calloc(strNum, sizeof(Line)); //запасной массив указателей
 
-    creatingAnArrayOfStrings (strNum, pBUF, EO, pEO);
+    createArrayOfStrings (strNum, pBUF, EO, pEO);
 
     sortStrings              (EO, strNum, strCmpFirstLetter);
     stringArrayOutput        (strNum, EO, write);
@@ -109,7 +122,7 @@ size_t fileSizeDetection(FILE * read)
     return fileSize / sizeof(char);
 }
 
-char * pBufgets(struct Line * string, char * pBUF)
+char * takeLineFromBuffer(struct Line * string, char * pBUF)
 {
     assert(string != NULL);
     assert(pBUF   != NULL);
@@ -132,7 +145,7 @@ char * pBufgets(struct Line * string, char * pBUF)
     return pBUF;
 }
 
-size_t countingTheNumberOfRows(char * BUF, size_t elements)
+size_t countNumberOfRows(char * BUF, size_t elements)
 {
     assert(BUF != NULL);
 
@@ -149,12 +162,12 @@ size_t countingTheNumberOfRows(char * BUF, size_t elements)
     return n;
 }
 
-void creatingAnArrayOfStrings(const size_t strNum, char * pBUF, struct Line * EO, struct Line * pEO)
+void createArrayOfStrings(const size_t strNum, char * pBUF, struct Line * EO, struct Line * pEO)
 {
     for(size_t i = 0; i < strNum; i++)
     {
 
-        pBUF   = pBufgets(&EO[i], pBUF);
+        pBUF   = takeLineFromBuffer(&EO[i], pBUF);
         pEO[i] = EO[i];
 
     }
