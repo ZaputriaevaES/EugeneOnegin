@@ -8,6 +8,8 @@ struct Line{
     int strLen;
     };
 
+char * readFromFileToBuffer (char * BUF, size_t num, size_t * elements, FILE * readFile);
+
 size_t fileSizeDetection    (FILE * read);
 
 char * takeLineFromBuffer   (struct Line * string, char * pBUF);
@@ -21,60 +23,59 @@ void   stringArrayOutput    (const size_t strNum, struct Line * EO, FILE * write
 void   sortStrings          (struct Line * strings, size_t num,
                             int (* strCmp)(struct Line *, struct Line *));
 
-int    strCmpFirstLetter    (struct Line * string1, struct Line * string2);//сравнение двух строк
-int    strCmpLastLetter     (struct Line * string1, struct Line * string2);//сравнение двух строк
+int    strCmpFirstLetter    (struct Line * string1, struct Line * string2);
+int    strCmpLastLetter     (struct Line * string1, struct Line * string2);
 
 int    quickSortFromStart   (const void *ptr1, const void *ptr2);
 int    quickSortFromTheEnd  (const void *ptr1, const void *ptr2);
-
-//int cmp(const void *ptr1, const void *ptr2);
-
 
 int main(int argc, char * argv[])
 {
 
 //--------------------------------Открытие файлов----------------------------------------------------
 
-    FILE * read = NULL;
+    FILE * readFile = NULL;
 
     for(int i = 1; i < argc; i++)
     {
-        if((read  = fopen(argv[i],  "r" )) != NULL)
+        if((readFile  = fopen(argv[i],  "r" )) != NULL)
         {
             break;
         }
     }
 
-    //const char * readFile  = "EugeneOnegin.txt";
     const char * writeFile = "write.txt";
-
-    //FILE * read  = fopen(readFile,  "r" );
     FILE * write = fopen(writeFile, "w+");
+    //assert(write != NULL && "\nunable to open file write.txt\n");
 
-    //assert(read != NULL && "\nunable to open file EugeneOnegin.txt\n");
-    //assert(wite != NULL && "\nunable to open file write.txt\n")
+//--------------------------------Создание буфера----------------------------------------------------
 
-    size_t elements = fileSizeDetection(read);
+    size_t num = 100;
+    char * BUF = (char *)calloc(num, sizeof(char));
 
-    char * BUF = (char *)calloc(elements, sizeof(char)); //указатель на массив элементов типа char
-    char * pBUF = BUF;
+    size_t elements = 0;
+    BUF = readFromFileToBuffer(BUF, num, &elements, readFile);
 
-    assert(BUF != NULL && "\nfailed to allocate buffer memory\n");
+    //size_t elements = fileSizeDetection(read);
 
-    if(fread(BUF, sizeof(char), elements, read) < elements) //извлечение из файла read.txt
-        fprintf(stderr, "\nnot all elements were read from the file to the buffer\n");
+    //if(fread(BUF, sizeof(char), elements, read) < elements)
+        //fprintf(stderr, "\nnot all elements were read from the file to the buffer\n");
 
     //assert(fread(BUF, sizeof(char), Elements, read) < Elements &&
     //       "\nnot all elements were read from the file to the buffer\n")
 
-    fclose(read);
+    fclose(readFile);
+
+//--------------------------------Создание массива строк---------------------------------------------
 
     const size_t strNum = countNumberOfRows(BUF, elements) + 1; //количество строк
 
     struct Line * EO   = (struct Line *)calloc(strNum, sizeof(Line)); //основной массив указателей
     struct Line * pEO  = (struct Line *)calloc(strNum, sizeof(Line)); //запасной массив указателей
 
-    createArrayOfStrings (strNum, pBUF, EO, pEO);
+    createArrayOfStrings (strNum, BUF, EO, pEO);
+
+//--------------------------------Сортировка и вывод массива строк-----------------------------------
 
     sortStrings              (EO, strNum, strCmpFirstLetter);
     stringArrayOutput        (strNum, EO, write);
@@ -90,30 +91,53 @@ int main(int argc, char * argv[])
     //qsort                    (EO, strNum, sizeof(Line), quickSortFromTheEnd);
     //stringArrayOutput        (strNum, EO, write);
 
+//--------------------------------Закрытие файлов и очистка памяти-----------------------------------
 
     fclose(write);
 
+    free(BUF);
     free(EO);
+    free(pEO);
 
     return 0;
-/*
-//--------------------------------Сортировка строк по первой букве-----------------------------------
-    qsort(EO, 96, sizeof(char*), cmp);
-int cmp(const void *ptr1, const void *ptr2)
-{
-    const char * str1 = (char *) ptr1;
-    const char * str2 = (char *) ptr2;
-    int dif = 0; // difference of ANSI codes
-    while((dif = (*str1 - *str2)) == 0 && *str1 != '\0' && *str2 != '\0')
-    {
-        str1++;
-        str2++;
-    }
-    return dif;
-}
-*/
 }
 
+char * readFromFileToBuffer (char * BUF, size_t num, size_t * elements, FILE * readFile)
+{
+    assert(BUF != NULL && "\nfailed to allocate buffer memory\n");
+    assert(readFile != NULL);
+    assert(elements != NULL);
+
+    int c = 0;
+
+    while(1)
+    {
+        while(*elements < num)
+        {
+            if((c = getc(readFile)) == EOF)
+            {
+                BUF[*elements] = '\0';
+                break;
+            }
+
+            BUF[(*elements)++] = (char)c;
+        }
+
+        if(*elements == num)
+        {
+            num *= 2;
+            BUF = (char *)realloc(BUF, num * sizeof(char));
+        }
+
+        else
+        {
+            BUF = (char *)realloc(BUF, *elements * sizeof(char));
+            break;
+        }
+    }
+
+    return BUF;
+}
 
 size_t fileSizeDetection(FILE * read)
 {
@@ -196,7 +220,7 @@ void stringArrayOutput(size_t strNum, struct Line * EO, FILE * write)
     fprintf(write, "\n----------------------------------------------\n");
 }
 
-void sortStrings(struct Line * strings, size_t num, int (* strCmp)(struct Line *, struct Line *)) // массив указателей на строки и их количество
+void sortStrings(struct Line * strings, size_t num, int (* strCmp)(struct Line *, struct Line *))
 {
     assert(strings != NULL);
     assert(strCmp  != NULL);
