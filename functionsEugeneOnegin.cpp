@@ -1,10 +1,13 @@
 #include "EugeneOnegin.h"
 
-char * readFromFileToBuffer (char * BUF, size_t * elements, FILE * readFile)
+char * readFromFileToBuffer (size_t * elements, FILE * readFile)
 {
-    assert(BUF != NULL && "\nfailed to allocate buffer memory\n");
     assert(readFile != NULL);
     assert(elements != NULL);
+
+    *elements = 100;
+
+    char * BUF = (char *)calloc(*elements, sizeof(char));
 
     int c = 0;
     size_t num = *elements;
@@ -39,10 +42,34 @@ char * readFromFileToBuffer (char * BUF, size_t * elements, FILE * readFile)
     return BUF;
 }
 
+char * createBufferWithFread(size_t * elements, FILE * readFile, size_t * strNum)
+{
+    assert(readFile != NULL);
+
+    *elements = fileSizeDetection(readFile);
+
+    char * buffer = (char *)calloc(*elements, sizeof(char));
+
+    fread(buffer, sizeof(char), *elements, readFile);
+
+    *strNum = countNumberOfRows(buffer, *elements);
+
+    *elements -= *strNum;
+
+    buffer = (char *)realloc(buffer, (*elements) * sizeof(char));
+
+    return buffer;
+}
+
 size_t fileSizeDetection(FILE * read)
 {
     assert(read != NULL);
 
+    struct stat stbuf;
+    stat("EugeneOnegin.txt", &stbuf);
+    off_t fsize = stbuf.st_size;
+
+    /*
     assert(fseek(read, 0, SEEK_END) == 0 &&
            "\nunable to move pointer to end of file\n"); //перемещает указатель на конец файла
 
@@ -50,8 +77,9 @@ size_t fileSizeDetection(FILE * read)
 
     assert(fseek(read, 0, SEEK_SET) == 0 &&
            "\nunable to move pointer to beginning of file\n"); //перемещает указатель нв начало файла
+    */
 
-    return fileSize / sizeof(char) ;
+    return fsize / sizeof(char) ;
 }
 
 char * takeLineFromBuffer(struct Line * string, char * pBUF)
@@ -95,15 +123,11 @@ size_t countNumberOfRows(char * BUF, size_t elements)
     return n;
 }
 
-void createArrayOfStrings(const size_t strNum, char * pBUF, struct Line * EO, struct Line * pEO)
+void createArrayOfStrings(const size_t strNum, char * pBUF, struct Line * EO)
 {
     for(size_t i = 0; i < strNum; i++)
     {
-
         pBUF   = takeLineFromBuffer(&EO[i], pBUF);
-        //*(pBUF - 1) = '\0';
-        pEO[i] = EO[i];
-
     }
 }
 
@@ -122,55 +146,107 @@ void stringArrayOutput(size_t strNum, struct Line * EO, FILE * write)
     fprintf(write, "\n----------------------------------------------\n");
 }
 
-void outputOriginalText(char * buffer, size_t elements, FILE * write)
+void outputOriginalText(char * buffer, size_t strNum, FILE * write)
 {
     assert(buffer != NULL);
 
-    for(size_t i = 0; i < elements; i++)
+    int len = 0;
+
+    for(size_t i = 0; i < strNum; i++)
     {
-        if(buffer[i] == '\0')
-        {
-            putchar('\n');
-            putc('\n', write);
-        }
-        else
-        {
-            putchar(buffer[i]);
-            putc(buffer[i], write);
-        }
+        len = printf("%s\n", buffer);
+        fprintf(write, "%s\n", buffer);
+
+        buffer += len;
     }
 
     printf(        "\n----------------------------------------------\n");
     fprintf(write, "\n----------------------------------------------\n");
 }
 
-void sortStrings(void * strMas, size_t num, size_t elemSize, int (* strCmp)(const void *ptr1, const void *ptr2))
+void sortStrings(void * strMassiv, size_t num, size_t elemSize, int (* strCmp)(const void *ptr1, const void *ptr2))
 {
-    assert(strMas != NULL);
-    assert(strCmp != NULL);
+    assert(strMassiv != NULL);
+    assert(strCmp    != NULL);
 
-    struct Line * strings = (struct Line *) strMas;
-    //void * strings = strMas;
-
-    struct Line temp;
-    //void * temp;
-
-    //number tempp = {strings[1]};
+    char * strMas = (char*)strMassiv;
 
     int n = 0, i = 0;
+
+    char * tmp   = 0;
+    char * elem1 = 0;
+    char * elem2 = 0;
 
     for(n = num - 1; n >= 1; n--)
     {
         for(i = 0; i < n; i++)
         {
-            if (strCmp(strings + i, strings + i + 1) > 0)//strings + i*elemSize, strings + (i+1)*elemSize //strings + i, strings + i + 1
+            if (strCmp(strMas + i*elemSize, strMas + (i+1)*elemSize) > 0)
             {
-                temp         = strings[i];
-                strings[i]   = strings[i+1];
-                strings[i+1] = temp;
+                elem1 = (strMas + i    *elemSize);
+                elem2 = (strMas + (i+1)*elemSize);
+                swapElements(elem1, elem2, elemSize);
             }
         }
     }
+}
+
+void qsortMy(void * strMassiv, int left, int right, size_t elemSize, int (* strCmp)(const void *ptr1, const void *ptr2))
+{
+    assert(strMassiv != NULL);
+    assert(strCmp    != NULL);
+
+    char * strMas = (char*)strMassiv;
+
+    int i = left, j = right;
+
+    char * tmp   = 0;
+    char * elem1 = 0;
+    char * elem2 = 0;
+
+    char * pivot = strMas + ((left+right)/2)*elemSize;
+
+    while (i <= j)
+    {
+        while (strCmp(strMas + i*elemSize, pivot) < 0) i++;
+        while (strCmp(strMas + j*elemSize, pivot) > 0) j--;
+
+        if (i <= j)
+        {
+            if (strCmp((strMas + i*elemSize), (strMas + j*elemSize)) > 0)
+            {
+                elem1 = (strMas + i*elemSize);
+                elem2 = (strMas + j*elemSize);
+                swapElements(elem1, elem2, elemSize);
+            }
+
+            i++;
+            j--;
+        }
+
+    };
+
+    if (left < j ) qsortMy(strMas, left, j,  elemSize, strCmpFirstLetter);
+    if (i < right) qsortMy(strMas, i, right, elemSize, strCmpFirstLetter);
+}
+
+char * swapElements(char * elem1, char * elem2, size_t elemSize)
+{
+    assert(elem1 != NULL);
+    assert(elem2 != NULL);
+
+    char tmp = 0;
+
+    char * elem = elem2;
+
+    for(size_t i = 0; i < elemSize; i++)
+    {
+        tmp = *(elem1 + i);
+        *(elem1 + i) = *(elem2 + i);
+        *(elem2 + i) = tmp;
+    }
+
+    return elem;
 }
 
 int strCmpFirstLetter(const void *ptr1, const void *ptr2)
